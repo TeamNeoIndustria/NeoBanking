@@ -20,7 +20,7 @@ public class IRS {
 			put("apikey", apiKey);
 		}});
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getLeaderboard failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return null;
 		}
@@ -32,7 +32,7 @@ public class IRS {
 				IRSLeaderboardEntry leaderboardEntry = new IRSLeaderboardEntry(player, jsonNode.get("balance").asInt());
 				leaderboardEntries.add(leaderboardEntry);
 			} catch (Exception e) {
-				NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getLeaderboard skipped leaderboard entry due to invalid data");
+				NeoBanking.LOGGER.warn("IRS#getLeaderboard skipped leaderboard entry due to invalid data");
 				NeoBanking.LOGGER.debug(e.getMessage());
 			}
 		}
@@ -46,7 +46,7 @@ public class IRS {
 			put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
 		}});
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getUserBalance failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#getUserBalance failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return -1;
 		}
@@ -67,7 +67,7 @@ public class IRS {
 			put("limit", String.valueOf(historyLength));
 		}});
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getTransactionHistory failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#getTransactionHistory failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return null;
 		}
@@ -81,7 +81,7 @@ public class IRS {
 					jsonNode.get("amount").asInt(), jsonNode.get("reference").asText(), jsonNode.get("timestamp").asLong(), IRSPaymentState.ACCEPTED);
 				transactions.add(transaction);
 			} catch (Exception e) {
-				NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getTransactionHistory skipped history entry due to invalid data");
+				NeoBanking.LOGGER.warn("IRS#getTransactionHistory skipped history entry due to invalid data");
 				NeoBanking.LOGGER.debug(e.getMessage());
 			}
 		}
@@ -97,7 +97,7 @@ public class IRS {
 			put("txID", transactionID);
 		}});
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getTransactionStatus failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#getTransactionStatus failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return IRSPaymentState.UNKNOWN;
 		}
@@ -107,7 +107,7 @@ public class IRS {
 		try {
 			return IRSPaymentState.fromStateID(jsonNode.asInt());
 		} catch (IllegalArgumentException e) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getTransactionStatus failed. Bad state ID: {}", jsonNode.asInt());
+			NeoBanking.LOGGER.warn("IRS#getTransactionStatus failed. Bad state ID: {}", jsonNode.asInt());
 			NeoBanking.LOGGER.debug(e.getMessage());
 		}
 		return IRSPaymentState.UNKNOWN;
@@ -120,7 +120,7 @@ public class IRS {
 			put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
 		}});
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getPendingTransactions failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#getPendingTransactions failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return null;
 		}
@@ -134,7 +134,7 @@ public class IRS {
 					jsonNode.get("amount").asInt(), jsonNode.get("reference").asText(), jsonNode.get("timestamp").asLong(), IRSPaymentState.PENDING);
 				transactions.add(transaction);
 			} catch (Exception e) {
-				NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#getPendingTransactions skipped history entry due to invalid data");
+				NeoBanking.LOGGER.warn("IRS#getPendingTransactions skipped history entry due to invalid data");
 				NeoBanking.LOGGER.debug(e.getMessage());
 			}
 		}
@@ -150,7 +150,7 @@ public class IRS {
 			put("approve", approve ? "true" : "false");
 		}});
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#approveTransaction failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#approveTransaction failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
 		}
@@ -188,7 +188,7 @@ public class IRS {
 		}
 		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "send", parameters);
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#sendMoney failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#sendMoney failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
 		}
@@ -224,7 +224,7 @@ public class IRS {
 		}
 		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "request", parameters);
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#requestMoney failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#requestMoney failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
 		}
@@ -239,7 +239,7 @@ public class IRS {
 			put("uuid", playerUUID); // Runs the api as if the specified user provided their own apikey
 		}});
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#serverNewKey failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#serverNewKey failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return null;
 		}
@@ -256,7 +256,7 @@ public class IRS {
 			put("uuid", playerUUID); // Runs the api as if the specified user provided their own apikey
 		}});
 		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("NeoBanking.networking.IRS#serverCreateUser failed. Code: {}, Message: {}",
+			NeoBanking.LOGGER.warn("IRS#serverCreateUser failed. Code: {}, Message: {}",
 				response.getStatusCode(), response.getStatusMessage());
 			return false;
 		}

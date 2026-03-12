@@ -11,7 +11,7 @@ public enum IRSPaymentState {
 	private final int stateID;
 	private final String description;
 
-	private IRSPaymentState(int stateID, String description) {
+	IRSPaymentState(int stateID, String description) {
 		this.stateID = stateID;
 		this.description = description;
 	}

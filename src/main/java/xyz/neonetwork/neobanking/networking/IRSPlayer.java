@@ -4,7 +4,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
+import xyz.neonetwork.neobanking.Utilities;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class IRSPlayer {
@@ -34,12 +36,12 @@ public class IRSPlayer {
 		if (this.isServer() || this.playerUUID == null) return null;
 		MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
 		if (server == null || !server.isDedicatedServer()) return null;
-		return server.getPlayerList().getPlayer(UUID.fromString(this.playerUUID));
+		return server.getPlayerList().getPlayer(Objects.requireNonNull(Utilities.UUIDFromString(this.playerUUID)));
 	}
 
 	public String getPlayerDisplayName() {
 		if (this.isServer()) return serverUUID;
-		if (this.playerUUID != null) return this.playerName;
+		if (this.playerName != null) return this.playerName;
 		return this.getPlayer().getDisplayName().getString();
 	}
 }
