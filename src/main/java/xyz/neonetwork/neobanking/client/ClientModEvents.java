@@ -1,8 +1,11 @@
 package xyz.neonetwork.neobanking.client;
 
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import xyz.neonetwork.neobanking.gui.ModMenuTypes;
+import xyz.neonetwork.neobanking.gui.pda.PDAScreen;
 import xyz.neonetwork.neobanking.payload.ToastPayload;
 
 public class ClientModEvents {
@@ -14,5 +17,10 @@ public class ClientModEvents {
 			ToastPayload.STREAM_CODEC,
 			ClientPayloadHandler::handleDataOnMain
 		);
+	}
+
+	@SubscribeEvent
+	public static void registerScreens(RegisterMenuScreensEvent event) {
+		event.register(ModMenuTypes.PDA_MENU.get(), PDAScreen::new);
 	}
 }

@@ -18,9 +18,9 @@ public class NeoItems {
 		put("netherite_coin", NeoBanking.REGISTRATE.item("netherite_coin", prop -> new CoinItem(50, prop)).register());
 	}};
 
-//	public static final HashMap<String, ItemEntry<?>> NEO_ITEMS = new HashMap<>() {{
-//		put("pda", NeoBanking.REGISTRATE.item("pda", PDAItem::new).register());
-//	}};
+	public static final HashMap<String, ItemEntry<?>> NEO_ITEMS = new HashMap<>() {{
+		put("pda", NeoBanking.REGISTRATE.item("pda", PDAItem::new).register());
+	}};
 
 	public static void register() {}
 }

@@ -50,7 +50,7 @@ public class NeoBankingCommand {
 				)
 			).executes(context -> {
 				if (context.getSource().getServer().isDedicatedServer()) {
-					PacketDistributor.sendToPlayer(Objects.requireNonNull(context.getSource().getPlayer()), new ToastPayload("Test", 1));
+					PacketDistributor.sendToPlayer(Objects.requireNonNull(context.getSource().getPlayer()), new ToastPayload("Payment Received", "1¢ from " + context.getSource().getPlayer().getDisplayName().getString()));
 				}
 				return 1;
 			})

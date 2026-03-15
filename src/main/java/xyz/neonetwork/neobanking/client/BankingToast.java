@@ -27,9 +27,8 @@ public class BankingToast implements Toast {
 	public @NotNull Visibility render(GuiGraphics guiGraphics, @NotNull ToastComponent toastComponent, long delta) {
 		guiGraphics.blit(TEXTURE, 0, 0, 0, 0, WIDTH, HEIGHT, WIDTH, HEIGHT); // Draw background
 		Font font = Minecraft.getInstance().font;
-		guiGraphics.drawString(font, title.getString(), 33, 7, 0xFFFFFF); // Title position
-		guiGraphics.drawString(font, message.getString(), 33, 17, 0xFFFFFF); // Message position
-		// Logic to handle when to remove the toast
+		guiGraphics.drawString(font, title.getString(), 33, 6, 0xFFFFFF);
+		guiGraphics.drawString(font, message.getString(), 33, 18, 0xFFFFFF);
 		if (delta > 5000) { // for example, display for 5 seconds
 			return Visibility.HIDE; // Hide after duration
 		}

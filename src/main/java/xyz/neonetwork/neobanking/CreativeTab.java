@@ -17,6 +17,7 @@ public class CreativeTab {
 			.icon(NeoItems.NEO_SYSTEM_ITEMS.get("base_coin")::asStack)
 			.displayItems((param, output) -> {
 				NeoItems.NEO_COINS.forEach((id, item) -> output.accept(item.asStack()));
+				NeoItems.NEO_ITEMS.forEach((id, item) -> output.accept(item.asStack()));
 			})
 			.build()
 	);

@@ -8,7 +8,11 @@ import xyz.neonetwork.neobanking.payload.ToastPayload;
 
 public class ClientPayloadHandler {
 	public static void handleDataOnMain(final ToastPayload toastPayload, final IPayloadContext context) {
-		Toast toast = new BankingToast(Component.literal("Line 1"), Component.literal("And some line 2"));
+		String title = toastPayload.title();
+		String message = toastPayload.message();
+		if (title == null || message == null) return;
+
+		Toast toast = new BankingToast(Component.literal(title), Component.literal(message));
 		Minecraft.getInstance().getToasts().addToast(toast);
 	}
 }
