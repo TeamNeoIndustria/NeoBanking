@@ -1,6 +1,8 @@
-package xyz.neonetwork.neobanking.networking;
+package xyz.neonetwork.neobanking.api;
 
-public enum IRSPaymentState {
+import java.io.Serializable;
+
+public enum IRSPaymentState implements Serializable {
 	DECLINED(-1, "Declined"),
 	PENDING(0, "Pending"),
 	ACCEPTED(1, "Accepted"),

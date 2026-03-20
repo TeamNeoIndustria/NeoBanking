@@ -16,12 +16,13 @@ import xyz.neonetwork.neobanking.NeoBanking;
 // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
 @EventBusSubscriber(modid = NeoBanking.MODID, value = Dist.CLIENT)
 public class NeoBankingClient {
-	public NeoBankingClient(IEventBus modEventBus, ModContainer container) {
+
+	public NeoBankingClient(IEventBus eventBus, ModContainer container) {
 		// Allows NeoForge to create a config screen for this mod's configs.
 		// The config screen is accessed by going to the Mods screen > clicking on your mod > clicking on config.
 		// Do not forget to add translations for your config options to the en_us.json file.
 		container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
-		modEventBus.register(ClientModEvents.class);
+		eventBus.register(ClientModEvents.class);
 	}
 
 	@SubscribeEvent

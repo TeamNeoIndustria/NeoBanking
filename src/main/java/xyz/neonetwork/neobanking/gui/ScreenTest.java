@@ -1,56 +1,31 @@
-package xyz.neonetwork.neobanking.gui.pda;
+package xyz.neonetwork.neobanking.gui;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Inventory;
-import org.lwjgl.glfw.GLFW;
-import xyz.neonetwork.neobanking.NeoBanking;
+import org.jetbrains.annotations.NotNull;
 import xyz.neonetwork.neolib.textures.NeoTexture;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+public class ScreenTest extends Screen {
 
-public class PDAScreen extends AbstractContainerScreen<PDAMenu> {
+	private final String title;
+	private final int imageWidth;
+	private final int imageHeight;
 
 	private int offsetX;
 	private int offsetY;
 
 	public EditBox editbox;
 
-	public PDAScreen(PDAMenu menu, Inventory playerInventory, Component title) {
-		super(menu, playerInventory, title);
-		imageWidth = 320;
-		imageHeight = 192;
-	}
-
-	@Override
-	public boolean isPauseScreen() {
-		return false;
-	}
-
-	@Override
-	protected void init() {
-		super.init();
-		clearWidgets();
-
-		this.offsetX = (width - imageWidth) / 2;
-		this.offsetY = (height - imageHeight) / 2;
-
-		editbox = new EditBox(this.font, offsetX, offsetY, Component.literal("Textbox"));
-		editbox.setMaxLength(16);
-		editbox.setBordered(true);
-		editbox.setX(offsetX + 16);
-		editbox.setY(offsetY + 16);
-		editbox.setWidth(64);
-		editbox.setHeight(16);
-		addWidget(editbox);
+	public ScreenTest(Component title) {
+		super(title);
+		this.title = title.toString();
+		this.imageWidth = 320;
+		this.imageHeight = 192;
 	}
 
 	public static void drawNineSlice(GuiGraphics gui, ResourceLocation texture, int segmentRes, int startX, int startY, int width, int height) {
@@ -125,102 +100,36 @@ public class PDAScreen extends AbstractContainerScreen<PDAMenu> {
 		gui.drawCenteredString(font, truncatedTitle, startX + (width / 2), startY, 0xFFFFFF);
 	}
 
+
 	@Override
-	public void render(GuiGraphics gui, int mouseX, int mouseY, float partialTick) {
-		renderBackground(gui, mouseX, mouseY, partialTick);
+	public void init() {
+		super.init();
+		clearWidgets();
+
+		this.offsetX = (width - imageWidth) / 2;
+		this.offsetY = (height - imageHeight) / 2;
+
+		editbox = new EditBox(this.font, offsetX, offsetY, Component.literal("Textbox"));
+		editbox.setMaxLength(16);
+		editbox.setBordered(true);
+		editbox.setX(offsetX + 16);
+		editbox.setY(offsetY + 16);
+		editbox.setWidth(64);
+		editbox.setHeight(16);
+		addWidget(editbox);
 	}
 
 	@Override
-	protected void renderBg(GuiGraphics gui, float partialTicks, int mouseX, int mouseY) {
+	public void render(@NotNull GuiGraphics gui, int mouseX, int mouseY, float partialTick) {
+		this.renderBackground(gui, mouseX, mouseY, partialTick);
 		if (this != minecraft.screen) return;
 
 		drawNineSlice(gui, NeoTexture.GENERIC.BACKGROUND_MAIN_BODY, 16, offsetX, offsetY, imageWidth, imageHeight);
 		drawTitle(gui, NeoTexture.GENERIC.BACKGROUND_TITLE_BOX, 16, 4, 4, this.font, "This is a stupidly long title for a ui element in this rediuclous game", offsetX, offsetY, imageWidth);
 
-		editbox.render(gui, mouseX, mouseY, partialTicks);
+		editbox.render(gui, mouseX, mouseY, partialTick);
 		if (editbox.getValue().isBlank() && editbox.isFocused()) {
-			gui.drawString(font, editbox.getMessage(), editbox.getX(), editbox.getY(), 0xff4A2D31, false);
+			gui.drawString(font, editbox.getMessage(), editbox.getX() + 3, editbox.getY() + 3, 0xff4A2D31, false);
 		}
-	}
-
-	private final List<Button> buttons = new ArrayList<>();
-	private final List<EditBox> editBoxes = new ArrayList<>();
-
-	private void setupWidgetElements() {
-		this.buttons.clear();
-
-		int buttonWidth = 100;
-		int buttonHeight = 20;
-
-		this.offsetX = (width - imageWidth) / 2;
-		this.offsetY = (height - imageHeight) / 2;
-
-		Button iamabutton = myButton(offsetX + 5, offsetY + 20, buttonWidth, buttonHeight);
-		this.buttons.add(iamabutton);
-
-		EditBox editBox = myEditBox(offsetX + 5, offsetY + 45, buttonWidth, buttonHeight);
-		this.editBoxes.add(editBox);
-	}
-
-	public Button myButton(int x, int y, int width, int height) {
-		return Button.builder(Component.literal("I am a button"), (onPress) -> myPress()).bounds(x, y, width, height).tooltip(Tooltip.create(Component.literal("And this is my tooltip text"))).build();
-	}
-
-	public EditBox myEditBox(int x, int y, int width, int height) {
-		EditBox editBox = new EditBox(this.font, x, y, width, height, Component.literal("start text"));
-		editBox.setEditable(true);
-		editBox.setResponder((v) -> {
-			NeoBanking.LOGGER.info("Responder?");
-		});
-		return editBox;
-	}
-
-	public static void myPress() {
-		NeoBanking.LOGGER.info("You press the button!");
-	}
-
-	@Override
-	public boolean charTyped(char codePoint, int modifiers) {
-		if (ignoreTextInput) {
-			return false;
-		}
-		String s = editbox.getValue();
-		if (!editbox.charTyped(codePoint, modifiers)) {
-			return false;
-		}
-		if (!Objects.equals(s, editbox.getValue())) {
-			//
-		}
-		return true;
-	}
-
-	private boolean ignoreTextInput = false;
-
-	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		ignoreTextInput = false;
-		if (!editbox.isFocused() && minecraft.options.keyChat.matches(keyCode, scanCode)) {
-			ignoreTextInput = true;
-			editbox.setFocused(true);
-		}
-
-		if (keyCode == GLFW.GLFW_KEY_ENTER && editbox.isFocused()) {
-			editbox.setFocused(false);
-		}
-
-		String s = editbox.getValue();
-		if (!editbox.keyPressed(keyCode, scanCode, modifiers)) {
-			return editbox.isFocused() && editbox.isVisible() && keyCode != 256 || super.keyPressed(keyCode, scanCode, modifiers);
-		}
-		if (!Objects.equals(s, editbox.getValue())) {
-			//
-		}
-		return true;
-	}
-
-	@Override
-	public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-		ignoreTextInput = false;
-		return super.keyReleased(keyCode, scanCode, modifiers);
 	}
 }

@@ -2,6 +2,7 @@ package xyz.neonetwork.neobanking;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.CreativeModeTab;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -12,11 +13,12 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import org.slf4j.Logger;
+import xyz.neonetwork.neobanking.api.IRS;
 import xyz.neonetwork.neobanking.commands.NeoBankingCommand;
 import xyz.neonetwork.neobanking.gui.ModMenuTypes;
 import xyz.neonetwork.neobanking.items.NeoItems;
-import xyz.neonetwork.neobanking.networking.IRS;
 
 import java.util.Objects;
 
@@ -26,6 +28,7 @@ public class NeoBanking {
 	public static final Logger LOGGER = LogUtils.getLogger();
 	public static final NeoRegistrate REGISTRATE = NeoRegistrate.create(MODID)
 		.defaultCreativeTab((ResourceKey<CreativeModeTab>) null);
+	public static MinecraftServer server;
 
 	public NeoBanking(IEventBus modEventBus, ModContainer modContainer) {
 		modEventBus.addListener(this::commonSetup);
@@ -44,12 +47,17 @@ public class NeoBanking {
 	}
 
 	@SubscribeEvent
+	public void onServerStart(ServerStartedEvent event) {
+		server = event.getServer();
+	}
+
+	@SubscribeEvent
 	public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
 		if (!Objects.requireNonNull(event.getEntity().getServer()).isDedicatedServer()) return;
 		if (!IRS.serverCreateUser(event.getEntity().getStringUUID())) {
 			LOGGER.warn("Failed to create user in IRS database");
 		} else {
-			LOGGER.info("Validated player in IRS database");
+			LOGGER.info("Validated transaction in IRS database");
 		}
 	}
 

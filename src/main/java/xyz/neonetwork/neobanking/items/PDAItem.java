@@ -12,7 +12,6 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import xyz.neonetwork.neobanking.NeoBanking;
 import xyz.neonetwork.neobanking.gui.pda.PDAMenu;
 
 public class PDAItem extends Item implements MenuProvider {

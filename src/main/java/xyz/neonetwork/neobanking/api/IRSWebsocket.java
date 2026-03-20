@@ -1,9 +1,8 @@
-package xyz.neonetwork.neobanking.networking;
+package xyz.neonetwork.neobanking.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
-import okio.ByteString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.neonetwork.neobanking.Config;

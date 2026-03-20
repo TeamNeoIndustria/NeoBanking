@@ -1,4 +1,4 @@
-package xyz.neonetwork.neobanking.networking;
+package xyz.neonetwork.neobanking.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import xyz.neonetwork.neobanking.Config;

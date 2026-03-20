@@ -1,7 +1,7 @@
 package xyz.neonetwork.neobanking.paymentprocessor;
 
 import xyz.neonetwork.neobanking.NeoBanking;
-import xyz.neonetwork.neobanking.networking.IRSTransaction;
+import xyz.neonetwork.neobanking.api.IRSTransaction;
 
 import java.util.ArrayList;
 import java.util.List;

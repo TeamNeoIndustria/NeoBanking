@@ -9,11 +9,14 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.PacketDistributor;
-import xyz.neonetwork.neobanking.networking.IRS;
-import xyz.neonetwork.neobanking.networking.IRSPlayer;
-import xyz.neonetwork.neobanking.networking.IRSWebsocket;
-import xyz.neonetwork.neobanking.payload.ToastPayload;
+import xyz.neonetwork.neobanking.api.IRS;
+import xyz.neonetwork.neobanking.api.IRSPlayer;
+import xyz.neonetwork.neobanking.api.IRSTransaction;
+import xyz.neonetwork.neobanking.api.IRSWebsocket;
+import xyz.neonetwork.neobanking.packets.IRSClientboundPacket;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class NeoBankingCommand {
@@ -44,13 +47,15 @@ public class NeoBankingCommand {
 					.executes(context -> {
 						Player player = EntityArgument.getPlayer(context, "playerName");
 						IRSPlayer irsPlayer = new IRSPlayer(player.getStringUUID());
-						context.getSource().sendSuccess(() -> Component.literal("Player Name From UUID: " + irsPlayer.getPlayer().getDisplayName().getString() + " (" + irsPlayer.getPlayerUUID() + ")"), false);
+						context.getSource().sendSuccess(() -> Component.literal("Player Name From UUID: " + irsPlayer.getPlayer().getDisplayName().getString() + " (" + irsPlayer.getPlayerUUID().toString() + ")"), false);
 						return 1;
 					})
 				)
 			).executes(context -> {
 				if (context.getSource().getServer().isDedicatedServer()) {
-					PacketDistributor.sendToPlayer(Objects.requireNonNull(context.getSource().getPlayer()), new ToastPayload("Payment Received", "1¢ from " + context.getSource().getPlayer().getDisplayName().getString()));
+					List<IRSTransaction> history = IRS.getTransactionHistory("02c0f072-5e8f-46f8-a400-4b1722b293f0");
+					if (history.isEmpty()) return 1;
+					PacketDistributor.sendToPlayer(Objects.requireNonNull(context.getSource().getPlayer()), new IRSClientboundPacket("history", 0, history, new ArrayList<>()));
 				}
 				return 1;
 			})
