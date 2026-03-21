@@ -12,9 +12,8 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import xyz.neonetwork.neobanking.gui.pda.PDAMenu;
 
-public class PDAItem extends Item implements MenuProvider {
+public class PDAItem extends Item {
 	public PDAItem(Properties properties) {
 		super(properties);
 	}
@@ -25,21 +24,11 @@ public class PDAItem extends Item implements MenuProvider {
 	}
 
 	@Override
-	public Component getDisplayName() {
-		return null;
-	}
-
-	@Override
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
 		if (!level.isClientSide()) {
 			ServerPlayer serverPlayer = (ServerPlayer) player;
-			serverPlayer.openMenu(new SimpleMenuProvider((containerId, playerInventory, playerEntity) -> new PDAMenu(containerId, playerInventory, playerEntity, this), Component.literal("PDA Menu")));
+//			serverPlayer.openMenu(new SimpleMenuProvider((containerId, playerInventory, playerEntity) -> new PDAMenu(containerId, playerInventory, playerEntity, this), Component.literal("PDA Menu")));
 		}
 		return InteractionResultHolder.success(player.getItemInHand(hand));
-	}
-
-	@Override
-	public AbstractContainerMenu createMenu(int i, Inventory inventory, Player player) {
-		return new PDAMenu(i, inventory, player, this);
 	}
 }

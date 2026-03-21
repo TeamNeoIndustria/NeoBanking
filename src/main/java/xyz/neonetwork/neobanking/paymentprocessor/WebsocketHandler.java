@@ -10,7 +10,6 @@ import xyz.neonetwork.neobanking.NeoBanking;
 import xyz.neonetwork.neobanking.api.IRSPaymentState;
 import xyz.neonetwork.neobanking.api.IRSPlayer;
 import xyz.neonetwork.neobanking.api.IRSTransaction;
-import xyz.neonetwork.neobanking.packets.IRSToastPacket;
 import xyz.neonetwork.neolib.textures.NeoTexture;
 import xyz.neonetwork.neolib.toast.NeoToastData;
 import xyz.neonetwork.neolib.toast.NeoToastPacket;

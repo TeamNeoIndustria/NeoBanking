@@ -17,7 +17,6 @@ import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import org.slf4j.Logger;
 import xyz.neonetwork.neobanking.api.IRS;
 import xyz.neonetwork.neobanking.commands.NeoBankingCommand;
-import xyz.neonetwork.neobanking.gui.ModMenuTypes;
 import xyz.neonetwork.neobanking.items.NeoItems;
 
 import java.util.Objects;
@@ -38,7 +37,6 @@ public class NeoBanking {
 
 		REGISTRATE.registerEventListeners(modEventBus);
 		NeoItems.register();
-		ModMenuTypes.register(modEventBus);
 		CreativeTab.register(modEventBus);
 	}
 
