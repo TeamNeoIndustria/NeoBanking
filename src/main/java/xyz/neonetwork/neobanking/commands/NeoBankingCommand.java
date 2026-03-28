@@ -55,7 +55,8 @@ public class NeoBankingCommand {
 				if (context.getSource().getServer().isDedicatedServer()) {
 					List<IRSTransaction> history = IRS.getTransactionHistory("02c0f072-5e8f-46f8-a400-4b1722b293f0");
 					if (history.isEmpty()) return 1;
-					PacketDistributor.sendToPlayer(Objects.requireNonNull(context.getSource().getPlayer()), new IRSClientboundPacket("history", 0, history, new ArrayList<>()));
+//					PacketDistributor.sendToPlayer(Objects.requireNonNull(context.getSource().getPlayer()), new IRSClientboundPacket("history", 0, history, new ArrayList<>()));
+					PacketDistributor.sendToAllPlayers(new IRSClientboundPacket("history", 0, history, new ArrayList<>()));
 				}
 				return 1;
 			})

@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "xyz.neonetwork.neobanking.mixins",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"FilteringBehaviourAccessor",
+		"StockTickerInteractionHandlerMixin",
+		"TableClothFilteringBehaviourMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -1,5 +1,6 @@
 package xyz.neonetwork.neobanking.items;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -12,6 +13,11 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.common.Mod;
+import xyz.neonetwork.neobanking.NeoBanking;
+import xyz.neonetwork.neobanking.gui.ScreenGrid;
+import xyz.neonetwork.neobanking.gui.ScreenTest;
 
 public class PDAItem extends Item {
 	public PDAItem(Properties properties) {
@@ -26,9 +32,11 @@ public class PDAItem extends Item {
 	@Override
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
 		if (!level.isClientSide()) {
-			ServerPlayer serverPlayer = (ServerPlayer) player;
+//			ServerPlayer serverPlayer = (ServerPlayer) player;
 //			serverPlayer.openMenu(new SimpleMenuProvider((containerId, playerInventory, playerEntity) -> new PDAMenu(containerId, playerInventory, playerEntity, this), Component.literal("PDA Menu")));
+			return InteractionResultHolder.success(player.getItemInHand(hand));
 		}
+
 		return InteractionResultHolder.success(player.getItemInHand(hand));
 	}
 }
