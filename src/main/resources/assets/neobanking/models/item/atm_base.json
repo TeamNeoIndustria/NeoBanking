@@ -1,0 +1,8 @@
+{
+	"parent": "neobanking:block/atm_base",
+	"display": {
+		"thirdperson_righthand": {"rotation":[-90,0,0],"translation":[0,1,0],"scale":[0.55,0.55,0.55]},
+		"firstperson_righthand": {"rotation":[0,-135,25],"translation":[0,4,2],"scale":[0.68,0.68,0.68]},
+		"gui": {"rotation":[30,-135,0],"translation":[0,0,0],"scale":[0.625,0.625,0.625]}
+	}
+}

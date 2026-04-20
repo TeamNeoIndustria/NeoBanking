@@ -1,266 +1,377 @@
 package xyz.neonetwork.neobanking.api;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import org.jetbrains.annotations.NotNull;
 import xyz.neonetwork.neobanking.Config;
 import xyz.neonetwork.neobanking.NeoBanking;
 import xyz.neonetwork.neolib.api.APIRequest;
 import xyz.neonetwork.neolib.api.APIResponse;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class IRS {
 	public static final String neoNetworkIRSEndpoint = Config.IRS_WEB_ENDPOINT.get();
 	public static final String apiKey = Config.IRS_WEB_APIKEY.get();
 
 	public static List<IRSLeaderboardEntry> getLeaderboard() {
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "leaderboard", new HashMap<String, String>() {{
-			put("apikey", apiKey);
-		}});
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
+		try {
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "leaderboard", new HashMap<>() {{
+				put("apikey", apiKey);
+			}});
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#getLeaderboard failed. Code: {}, Message: {}",
+					response.getStatusCode(), response.getStatusMessage());
+				return null;
+			}
+			List<IRSLeaderboardEntry> leaderboardEntries = new ArrayList<>();
+			for (JsonElement entry : response.getDataNode().getAsJsonArray()) {
+				JsonObject jsonNode = entry.getAsJsonObject();
+				IRSPlayer player = new IRSPlayer(jsonNode.get("user").getAsJsonObject().get("id").getAsString(), jsonNode.get("user").getAsJsonObject().get("name").getAsString());
+				IRSLeaderboardEntry leaderboardEntry = new IRSLeaderboardEntry(player, jsonNode.get("balance").getAsInt());
+				leaderboardEntries.add(leaderboardEntry);
+			}
+			return leaderboardEntries;
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed to parse leaderboard");
+			NeoBanking.LOGGER.debug(e.getMessage());
 			return null;
 		}
-		if (!response.getDataNode().isArray()) return null;
-		List<IRSLeaderboardEntry> leaderboardEntries = new ArrayList<>();
-		for (JsonNode jsonNode : response.getDataNode()) {
-			try {
-				IRSPlayer player = new IRSPlayer(jsonNode.get("user").get("id").asText(), jsonNode.get("user").get("name").asText());
-				IRSLeaderboardEntry leaderboardEntry = new IRSLeaderboardEntry(player, jsonNode.get("balance").asInt());
-				leaderboardEntries.add(leaderboardEntry);
-			} catch (Exception e) {
-				NeoBanking.LOGGER.warn("IRS#getLeaderboard skipped leaderboard entry due to invalid data");
-				NeoBanking.LOGGER.debug(e.getMessage());
-			}
-		}
-		return leaderboardEntries;
 	}
 
 	public static int getUserBalance(String playerUUID) {
-		if (playerUUID == null || playerUUID.isEmpty()) return -1;
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "balance", new HashMap<String, String>() {{
-			put("apikey", apiKey);
-			put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
-		}});
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#getUserBalance failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
+		try {
+			if (playerUUID == null || playerUUID.isEmpty()) return -1;
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "balance", new HashMap<>() {{
+				put("apikey", apiKey);
+				put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
+			}});
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#getUserBalance failed. Code: {}, Message: {}",
+					response.getStatusCode(), response.getStatusMessage());
+				return -1;
+			}
+			return response.getDataNode().getAsJsonObject().get("balance").getAsInt();
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed to parse user balance");
+			NeoBanking.LOGGER.debug(e.getMessage());
 			return -1;
 		}
-		if (!response.getDataNode().has("uuid")) return -1;
-		JsonNode jsonNode = response.getDataNode().get("uuid");
-		if (!jsonNode.isInt()) return -1;
-		return jsonNode.asInt();
 	}
 
 	public static List<IRSTransaction> getTransactionHistory(String playerUUID) {
 		return getTransactionHistory(playerUUID, 10);
 	}
 	public static List<IRSTransaction> getTransactionHistory(String playerUUID, int historyLength) {
-		if (playerUUID == null || playerUUID.isEmpty() || historyLength < 1 || historyLength > 100) return null;
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "history", new HashMap<String, String>() {{
-			put("apikey", apiKey);
-			put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
-			put("limit", String.valueOf(historyLength));
-		}});
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#getTransactionHistory failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
+		try {
+			if (playerUUID == null || playerUUID.isEmpty() || historyLength < 1 || historyLength > 100) return null;
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "history", new HashMap<>() {{
+				put("apikey", apiKey);
+				put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
+				put("limit", String.valueOf(historyLength));
+			}});
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#getTransactionHistory failed. Code: {}, Message: {}",
+					response.getStatusCode(), response.getStatusMessage());
+				return null;
+			}
+			List<IRSTransaction> transactions = new ArrayList<>();
+			for (JsonElement entry : response.getDataNode().getAsJsonArray()) {
+				JsonObject jsonNode = entry.getAsJsonObject();
+				IRSPlayer fromPlayer = new IRSPlayer(jsonNode.get("from").getAsJsonObject().get("id").getAsString(), jsonNode.get("from").getAsJsonObject().get("name").getAsString());
+				IRSPlayer toPlayer = new IRSPlayer(jsonNode.get("to").getAsJsonObject().get("id").getAsString(), jsonNode.get("to").getAsJsonObject().get("name").getAsString());
+				IRSTransaction transaction = new IRSTransaction(jsonNode.get("txID").getAsString(), fromPlayer, toPlayer,
+					jsonNode.get("amount").getAsInt(), jsonNode.get("reference").getAsString(), jsonNode.get("timestamp").getAsLong(), IRSPaymentState.ACCEPTED);
+				transactions.add(transaction);
+			}
+			return transactions;
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#getTransactionHistory failed to parse transaction history");
+			NeoBanking.LOGGER.debug(e.getMessage());
 			return null;
 		}
-		if (!response.getDataNode().isArray()) return null;
-		List<IRSTransaction> transactions = new ArrayList<>();
-		for (JsonNode jsonNode : response.getDataNode()) {
-			try {
-				IRSPlayer fromPlayer = new IRSPlayer(jsonNode.get("from").get("id").asText(), jsonNode.get("from").get("name").asText());
-				IRSPlayer toPlayer = new IRSPlayer(jsonNode.get("to").get("id").asText(), jsonNode.get("to").get("name").asText());
-				IRSTransaction transaction = new IRSTransaction(jsonNode.get("txID").asText(), fromPlayer, toPlayer,
-					jsonNode.get("amount").asInt(), jsonNode.get("reference").asText(), jsonNode.get("timestamp").asLong(), IRSPaymentState.ACCEPTED);
-				transactions.add(transaction);
-			} catch (Exception e) {
-				NeoBanking.LOGGER.warn("IRS#getTransactionHistory skipped history entry due to invalid data");
-				NeoBanking.LOGGER.debug(e.getMessage());
-			}
-		}
-		return transactions;
 	}
-
-	public static IRSPaymentState getTransactionStatus(String playerUUID, String transactionID) {
-		if (playerUUID == null || playerUUID.isEmpty()) return IRSPaymentState.UNKNOWN;
-		if (transactionID == null || transactionID.isEmpty()) return IRSPaymentState.UNKNOWN;
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "verify", new HashMap<String, String>() {{
-			put("apikey", apiKey);
-			put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
-			put("txID", transactionID);
-		}});
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#getTransactionStatus failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
-			return IRSPaymentState.UNKNOWN;
-		}
-		if (!response.getDataNode().has("state")) return IRSPaymentState.UNKNOWN;
-		JsonNode jsonNode = response.getDataNode().get("state");
-		if (!jsonNode.isInt()) return IRSPaymentState.UNKNOWN;
+	public static IRSTransaction getTransactionStatus(String playerUUID, String transactionID) {
+		return getTransactionStatus(playerUUID, transactionID, false);
+	}
+	public static IRSTransaction serverGetTransactionStatus(String playerUUID, String transactionID) {
+		return getTransactionStatus(playerUUID, transactionID, true);
+	}
+	private static IRSTransaction getTransactionStatus(String playerUUID, String transactionID, boolean fromServer) {
 		try {
-			return IRSPaymentState.fromStateID(jsonNode.asInt());
-		} catch (IllegalArgumentException e) {
-			NeoBanking.LOGGER.warn("IRS#getTransactionStatus failed. Bad state ID: {}", jsonNode.asInt());
+			if (playerUUID == null || playerUUID.isEmpty()) return null;
+			if (transactionID == null || transactionID.isEmpty()) return null;
+			Map<String, String> parameters = new HashMap<>() {{
+				put("apikey", apiKey);
+				put("txID", transactionID);
+			}};
+			if (!fromServer) parameters.put("as", playerUUID);
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "verify", parameters);
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#getTransactionStatus failed. Code: {}, Message: {}", response.getStatusCode(), response.getStatusMessage());
+				return switch (response.getStatusCode()) {
+					case "408" -> new IRSTransaction(null, IRSPaymentState.TIMED_OUT);
+					default -> new IRSTransaction(null, IRSPaymentState.UNKNOWN);
+				};
+			}
+			JsonObject jsonNode = response.getDataNode().getAsJsonObject();
+			return new IRSTransaction(
+				jsonNode.get("txID").getAsString(),
+				new IRSPlayer(jsonNode.get("from").getAsString()),
+				new IRSPlayer(jsonNode.get("to").getAsString()),
+				jsonNode.get("amount").getAsInt(),
+				jsonNode.get("reference").getAsString(),
+				jsonNode.get("timestamp").getAsLong(),
+				IRSPaymentState.fromStateID(jsonNode.get("state").getAsInt())
+			);
+
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed to parse transaction status");
 			NeoBanking.LOGGER.debug(e.getMessage());
+			return null;
 		}
-		return IRSPaymentState.UNKNOWN;
 	}
 
 	public static List<IRSTransaction> getPendingTransactions(String playerUUID) {
-		if (playerUUID == null || playerUUID.isEmpty()) return null;
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "pending", new HashMap<String, String>() {{
-			put("apikey", apiKey);
-			put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
-		}});
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#getPendingTransactions failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
+		try {
+			if (playerUUID == null || playerUUID.isEmpty()) return null;
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "pending", new HashMap<>() {{
+				put("apikey", apiKey);
+				put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
+			}});
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#getPendingTransactions failed. Code: {}, Message: {}",
+					response.getStatusCode(), response.getStatusMessage());
+				return null;
+			}
+			List<IRSTransaction> transactions = new ArrayList<>();
+			for (JsonElement entry : response.getDataNode().getAsJsonArray()) {
+				JsonObject jsonNode = entry.getAsJsonObject();
+				IRSPlayer fromPlayer = new IRSPlayer(playerUUID);
+				IRSPlayer toPlayer = new IRSPlayer(jsonNode.get("user").getAsJsonObject().get("id").getAsString(), jsonNode.get("user").getAsJsonObject().get("name").getAsString());
+				IRSTransaction transaction = new IRSTransaction(jsonNode.get("txID").getAsString(), fromPlayer, toPlayer,
+					jsonNode.get("amount").getAsInt(), jsonNode.get("reference").getAsString(), jsonNode.get("timestamp").getAsLong(), IRSPaymentState.PENDING);
+				transactions.add(transaction);
+			}
+			return transactions;
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed to parse pending transactions");
+			NeoBanking.LOGGER.debug(e.getMessage());
 			return null;
 		}
-		if (!response.getDataNode().isArray()) return null;
-		List<IRSTransaction> transactions = new ArrayList<>();
-		for (JsonNode jsonNode : response.getDataNode()) {
-			try {
-				IRSPlayer fromPlayer = new IRSPlayer(playerUUID);
-				IRSPlayer toPlayer = new IRSPlayer(jsonNode.get("user").get("id").asText(), jsonNode.get("user").get("name").asText());
-				IRSTransaction transaction = new IRSTransaction(jsonNode.get("txID").asText(), fromPlayer, toPlayer,
-					jsonNode.get("amount").asInt(), jsonNode.get("reference").asText(), jsonNode.get("timestamp").asLong(), IRSPaymentState.PENDING);
-				transactions.add(transaction);
-			} catch (Exception e) {
-				NeoBanking.LOGGER.warn("IRS#getPendingTransactions skipped history entry due to invalid data");
-				NeoBanking.LOGGER.debug(e.getMessage());
-			}
-		}
-		return transactions;
 	}
 
 	public static IRSSimpleTransaction approveTransaction(String playerUUID, String transactionID, boolean approve) {
-		if (playerUUID == null || playerUUID.isEmpty()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "approve", new HashMap<String, String>() {{
-			put("apikey", apiKey);
-			put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
-			put("txID", transactionID);
-			put("approve", approve ? "true" : "false");
-		}});
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#approveTransaction failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
+		try {
+			if (playerUUID == null || playerUUID.isEmpty()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "approve", new HashMap<>() {{
+				put("apikey", apiKey);
+				put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
+				put("txID", transactionID);
+				put("approve", Boolean.toString(approve));
+			}});
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#approveTransaction failed. Code: {}, Message: {}",
+					response.getStatusCode(), response.getStatusMessage());
+				return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
+			}
+			if (!Objects.equals(response.getDataNode().getAsJsonObject().get("accepted").getAsString(), "true")) return new IRSSimpleTransaction(null, IRSPaymentState.DECLINED);
+			return new IRSSimpleTransaction(response.getDataNode().getAsJsonObject().get("txID").getAsString(), IRSPaymentState.ACCEPTED);
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed to parse approve transaction");
+			NeoBanking.LOGGER.debug(e.getMessage());
 			return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
 		}
-		if (!response.getDataNode().has("accepted")) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		if (!Objects.equals(response.getDataNode().get("accepted").asText("false"), "true")) return new IRSSimpleTransaction(null, IRSPaymentState.DECLINED);
-		if (!response.getDataNode().has("txID")) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN) ;
-		return new IRSSimpleTransaction(response.getDataNode().get("txID").asText(), IRSPaymentState.ACCEPTED);
 	}
 
-	public static IRSSimpleTransaction sendMoney(String playerUUID, String toNameOrUUID, int amount, String reference) {
+	/**
+	 * @param playerUUID UUID of FROM player
+	 * @param toNameOrUUID UUID or Name of TO player
+	 * @param amount Amount (positive integer between 1 and Integer.MAX_VALUE inclusive)
+	 * @param reference Reference between 1 and 64 in length (inclusive)
+	 * @return IRSTransaction of payment details
+	 */
+	public static @NotNull IRSTransaction sendMoney(String playerUUID, String toNameOrUUID, int amount, String reference) {
 		return sendMoney(playerUUID, toNameOrUUID, String.valueOf(amount), reference);
 	}
-	public static IRSSimpleTransaction sendMoney(String playerUUID, String toNameOrUUID, String amount, String reference) {
+	/**
+	 * @param playerUUID UUID of FROM player
+	 * @param toNameOrUUID UUID or Name of TO player
+	 * @param amount Amount (string value of positive integer between 1 and Integer.MAX_VALUE inclusive)
+	 * @param reference Reference between 1 and 64 in length (inclusive)
+	 * @return IRSTransaction of payment details
+	 */
+	public static @NotNull IRSTransaction sendMoney(String playerUUID, String toNameOrUUID, String amount, String reference) {
 		return sendMoney(playerUUID, toNameOrUUID, amount, reference, false);
 	}
-	public static IRSSimpleTransaction serverSendMoney(String toNameOrUUID, int amount, String reference) {
+	/**
+	 * @param toNameOrUUID UUID or Name of TO player
+	 * @param amount Amount (positive integer between 1 and Integer.MAX_VALUE inclusive)
+	 * @param reference Reference between 1 and 64 in length (inclusive)
+	 * @return IRSTransaction of payment details
+	 */
+	public static @NotNull IRSTransaction serverSendMoney(String toNameOrUUID, int amount, String reference) {
 		return serverSendMoney(toNameOrUUID, String.valueOf(amount), reference);
 	}
-	public static IRSSimpleTransaction serverSendMoney(String toNameOrUUID, String amount, String reference) {
+	/**
+	 * @param toNameOrUUID UUID or Name of TO player
+	 * @param amount Amount (string value of positive integer between 1 and Integer.MAX_VALUE inclusive)
+	 * @param reference Reference between 1 and 64 in length (inclusive)
+	 * @return IRSTransaction of payment details
+	 */
+	public static @NotNull IRSTransaction serverSendMoney(String toNameOrUUID, String amount, String reference) {
 		return sendMoney(null, toNameOrUUID, amount, reference, true);
 	}
-	private static IRSSimpleTransaction sendMoney(String playerUUID, String toNameOrUUID, String amount, String reference, boolean fromServer) {
-		if (!fromServer && (playerUUID == null || playerUUID.isEmpty())) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		if (toNameOrUUID == null || toNameOrUUID.isEmpty()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		if (amount == null || amount.isEmpty()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		if (reference == null || reference.isEmpty()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		HashMap<String, String> parameters = new HashMap<>() {{
-			put("apikey", apiKey);
-			put("to", toNameOrUUID);
-			put("amount", amount);
-			put("reference", reference);
-		}};
-		if (!fromServer) {
-			parameters.put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
+	/**
+	 * @param fromUUID UUID of FROM player
+	 * @param amount Amount (positive integer between 1 and Integer.MAX_VALUE inclusive)
+	 * @param reference Reference between 1 and 64 in length (inclusive)
+	 * @return IRSTransaction of payment details
+	 */
+	public static @NotNull IRSTransaction serverReceiveMoney(String fromUUID, int amount, String reference) {
+		return serverReceiveMoney(fromUUID, String.valueOf(amount), reference);
+	}
+	/**
+	 * @param fromUUID UUID of FROM player
+	 * @param amount Amount (string value of positive integer between 1 and Integer.MAX_VALUE inclusive)
+	 * @param reference Reference between 1 and 64 in length (inclusive)
+	 * @return IRSTransaction of payment details
+	 */
+	public static @NotNull IRSTransaction serverReceiveMoney(String fromUUID, String amount, String reference) {
+		return sendMoney(fromUUID, "@Server", amount, reference, false);
+	}
+	private static @NotNull IRSTransaction sendMoney(String playerUUID, String toNameOrUUID, String amount, String reference, boolean fromServer) {
+		try {
+			if (!fromServer && (playerUUID == null || playerUUID.isEmpty())) return new IRSTransaction(null, IRSPaymentState.FROM_PLAYER_INVALID);
+			if (toNameOrUUID == null || toNameOrUUID.isEmpty()) return new IRSTransaction(null, IRSPaymentState.TO_PLAYER_INVALID);
+			if (amount == null || amount.isEmpty()) return new IRSTransaction(null, IRSPaymentState.INVALID_AMOUNT);
+			if (reference == null || reference.isEmpty()) return new IRSTransaction(null, IRSPaymentState.UNKNOWN);
+			HashMap<String, String> parameters = new HashMap<>() {{
+				put("apikey", apiKey);
+				put("to", toNameOrUUID);
+				put("amount", amount);
+				put("reference", reference);
+			}};
+			if (!fromServer) {
+				parameters.put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
+			}
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "send", parameters);
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#sendMoney failed. Code: {}, Message: {}", response.getStatusCode(), response.getStatusMessage());
+				return switch (response.getStatusCode()) {
+					case "402" -> new IRSTransaction(null, IRSPaymentState.INSUFFICIENT_FUNDS);
+					case "461" -> new IRSTransaction(null, IRSPaymentState.INVALID_REFERENCE);
+					case "462" -> new IRSTransaction(null, IRSPaymentState.TO_PLAYER_INVALID);
+					case "465" -> new IRSTransaction(null, IRSPaymentState.TO_FROM_PLAYER_SAME);
+					case "467" -> new IRSTransaction(null, IRSPaymentState.CANNOT_SEND_SERVER);
+					default -> new IRSTransaction(null, IRSPaymentState.UNKNOWN);
+				};
+			}
+			return new IRSTransaction(response.getDataNode().getAsJsonObject().get("txID").getAsString(),
+				new IRSPlayer(response.getDataNode().getAsJsonObject().get("from").getAsString()),
+				new IRSPlayer(response.getDataNode().getAsJsonObject().get("to").getAsString()),
+				response.getDataNode().getAsJsonObject().get("amount").getAsInt(),
+				response.getDataNode().getAsJsonObject().get("reference").getAsString(),
+				response.getDataNode().getAsJsonObject().get("timestamp").getAsLong(),
+				IRSPaymentState.ACCEPTED);
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed to parse send money");
+			NeoBanking.LOGGER.debug(e.getMessage());
+			return new IRSTransaction(null, IRSPaymentState.UNKNOWN);
 		}
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "send", parameters);
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#sendMoney failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
-			return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		}
-		if (!response.getDataNode().has("txID") || !response.getDataNode().get("txID").isTextual()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN) ;
-		return new IRSSimpleTransaction(response.getDataNode().get("txID").asText(), IRSPaymentState.ACCEPTED);
 	}
 
-	public static IRSSimpleTransaction requestMoney(String playerUUID, String fromNameOrUUID, int amount, String reference) {
+	public static IRSTransaction requestMoney(String playerUUID, String fromNameOrUUID, int amount, String reference) {
 		return requestMoney(playerUUID, fromNameOrUUID, String.valueOf(amount), reference);
 	}
-	public static IRSSimpleTransaction requestMoney(String playerUUID, String fromNameOrUUID, String amount, String reference) {
+	public static IRSTransaction requestMoney(String playerUUID, String fromNameOrUUID, String amount, String reference) {
 		return requestMoney(playerUUID, fromNameOrUUID, amount, reference, false);
 	}
-	public static IRSSimpleTransaction serverRequestMoney(String fromNameOrUUID, int amount, String reference) {
+	public static IRSTransaction serverRequestMoney(String fromNameOrUUID, int amount, String reference) {
 		return serverRequestMoney(fromNameOrUUID, String.valueOf(amount), reference);
 	}
-	public static IRSSimpleTransaction serverRequestMoney(String fromNameOrUUID, String amount, String reference) {
+	public static IRSTransaction serverRequestMoney(String fromNameOrUUID, String amount, String reference) {
 		return requestMoney(null, fromNameOrUUID, amount, reference, true);
 	}
-	private static IRSSimpleTransaction requestMoney(String playerUUID, String fromNameOrUUID, String amount, String reference, boolean fromServer) {
-		if (!fromServer && (playerUUID == null || playerUUID.isEmpty())) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		if (fromNameOrUUID == null || fromNameOrUUID.isEmpty()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		if (amount == null || amount.isEmpty()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		if (reference == null || reference.isEmpty()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		HashMap<String, String> parameters = new HashMap<>() {{
-			put("apikey", apiKey);
-			put("from", fromNameOrUUID);
-			put("amount", amount);
-			put("reference", reference);
-		}};
-		if (!fromServer) {
-			parameters.put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
+	private static IRSTransaction requestMoney(String playerUUID, String fromNameOrUUID, String amount, String reference, boolean fromServer) {
+		try {
+			if (!fromServer && (playerUUID == null || playerUUID.isEmpty())) return new IRSTransaction(null, IRSPaymentState.UNKNOWN);
+			if (fromNameOrUUID == null || fromNameOrUUID.isEmpty()) return new IRSTransaction(null, IRSPaymentState.UNKNOWN);
+			if (amount == null || amount.isEmpty()) return new IRSTransaction(null, IRSPaymentState.UNKNOWN);
+			if (reference == null || reference.isEmpty()) return new IRSTransaction(null, IRSPaymentState.UNKNOWN);
+			HashMap<String, String> parameters = new HashMap<>() {{
+				put("apikey", apiKey);
+				put("from", fromNameOrUUID);
+				put("amount", amount);
+				put("reference", reference);
+			}};
+			if (!fromServer) {
+				parameters.put("as", playerUUID); // Runs the api as if the specified user provided their own apikey
+			}
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "request", parameters);
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#requestMoney failed. Code: {}, Message: {}", response.getStatusCode(), response.getStatusMessage());
+				return switch (response.getStatusCode()) {
+					case "402" -> new IRSTransaction(null, IRSPaymentState.INSUFFICIENT_FUNDS);
+					case "461" -> new IRSTransaction(null, IRSPaymentState.INVALID_REFERENCE);
+					case "463" -> new IRSTransaction(null, IRSPaymentState.FROM_PLAYER_INVALID);
+					case "465" -> new IRSTransaction(null, IRSPaymentState.TO_FROM_PLAYER_SAME);
+					case "466" -> new IRSTransaction(null, IRSPaymentState.CANNOT_REQUEST_SERVER);
+					default -> new IRSTransaction(null, IRSPaymentState.UNKNOWN);
+				};
+			}
+			return new IRSTransaction(response.getDataNode().getAsJsonObject().get("txID").getAsString(),
+				new IRSPlayer(response.getDataNode().getAsJsonObject().get("from").getAsString()),
+				new IRSPlayer(response.getDataNode().getAsJsonObject().get("to").getAsString()),
+				response.getDataNode().getAsJsonObject().get("amount").getAsInt(),
+				response.getDataNode().getAsJsonObject().get("reference").getAsString(),
+				response.getDataNode().getAsJsonObject().get("timestamp").getAsLong(),
+				IRSPaymentState.PENDING);
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#getLeaderboard failed to parse request money");
+			NeoBanking.LOGGER.debug(e.getMessage());
+			return new IRSTransaction(null, IRSPaymentState.UNKNOWN);
 		}
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "request", parameters);
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#requestMoney failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
-			return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
-		}
-		if (!response.getDataNode().has("txID") || !response.getDataNode().get("txID").isTextual()) return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN) ;
-		return new IRSSimpleTransaction(response.getDataNode().get("txID").asText(), IRSPaymentState.PENDING);
 	}
 
 	public static String serverNewKey(String playerUUID) {
-		if (playerUUID == null || playerUUID.isEmpty()) return null;
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "newkey", new HashMap<String, String>() {{
-			put("apikey", apiKey);
-			put("uuid", playerUUID); // Runs the api as if the specified user provided their own apikey
-		}});
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#serverNewKey failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
+		try {
+			if (playerUUID == null || playerUUID.isEmpty()) return null;
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "newkey", new HashMap<>() {{
+				put("apikey", apiKey);
+				put("uuid", playerUUID); // Runs the api as if the specified user provided their own apikey
+			}});
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#serverNewKey failed. Code: {}, Message: {}",
+					response.getStatusCode(), response.getStatusMessage());
+				return null;
+			}
+			return response.getDataNode().getAsJsonObject().get("apikey").getAsString();
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#serverNewKey failed to parse new key");
+			NeoBanking.LOGGER.debug(e.getMessage());
 			return null;
 		}
-		if (!response.getDataNode().has("uuid") || !response.getDataNode().has("apikey")) return null;
-		JsonNode jsonNode = response.getDataNode().get("apikey");
-		if (!jsonNode.isTextual()) return null;
-		return jsonNode.asText();
 	}
 
 	public static boolean serverCreateUser(String playerUUID) {
-		if (playerUUID == null || playerUUID.isEmpty()) return false;
-		APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "createuser", new HashMap<String, String>() {{
-			put("apikey", apiKey);
-			put("uuid", playerUUID); // Runs the api as if the specified user provided their own apikey
-		}});
-		if (!response.getSuccess()) {
-			NeoBanking.LOGGER.warn("IRS#serverCreateUser failed. Code: {}, Message: {}",
-				response.getStatusCode(), response.getStatusMessage());
+		try {
+			if (playerUUID == null || playerUUID.isEmpty()) return false;
+			APIResponse response = APIRequest.apiRequest(neoNetworkIRSEndpoint + "createuser", new HashMap<>() {{
+				put("apikey", apiKey);
+				put("uuid", playerUUID); // Runs the api as if the specified user provided their own apikey
+			}});
+			if (!response.getSuccess()) {
+				NeoBanking.LOGGER.warn("IRS#serverCreateUser failed. Code: {}, Message: {}",
+					response.getStatusCode(), response.getStatusMessage());
+				return false;
+			}
+			response.getDataNode().getAsJsonObject().get("uuid").getAsString();
+			return true;
+		} catch (Exception e) {
+			NeoBanking.LOGGER.warn("IRS#serverCreateUser failed to parse user");
+			NeoBanking.LOGGER.debug(e.getMessage());
 			return false;
 		}
-		if (!response.getDataNode().has("uuid")) return false;
-		return response.getDataNode().get("uuid").isTextual();
 	}
 }

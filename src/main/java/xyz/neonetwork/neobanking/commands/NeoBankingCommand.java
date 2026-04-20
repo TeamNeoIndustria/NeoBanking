@@ -1,23 +1,28 @@
 package xyz.neonetwork.neobanking.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.network.PacketDistributor;
-import xyz.neonetwork.neobanking.api.IRS;
-import xyz.neonetwork.neobanking.api.IRSPlayer;
-import xyz.neonetwork.neobanking.api.IRSTransaction;
-import xyz.neonetwork.neobanking.api.IRSWebsocket;
-import xyz.neonetwork.neobanking.packets.IRSClientboundPacket;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import net.minecraft.world.item.ItemStack;
+import xyz.neonetwork.neobanking.NeoBanking;
+import xyz.neonetwork.neobanking.api.*;
+import xyz.neonetwork.neobanking.blockitems.CoinItem;
+import xyz.neonetwork.neobanking.paymentprocessor.CurrencyHandler;
+import xyz.neonetwork.neolib.NeoLib;
+import xyz.neonetwork.neolib.servergui.NeoServerScreen;
+import xyz.neonetwork.neolib.servergui.NeoServerScreenGrid;
+import xyz.neonetwork.neolib.textures.NeoTexture;
+import xyz.neonetwork.neolib.utilities.NeoComponent;
+import xyz.neonetwork.neolib.utilities.NeoString;
 
 public class NeoBankingCommand {
 
@@ -39,27 +44,124 @@ public class NeoBankingCommand {
 				)
 			).then(Commands.literal("forcereconnect").requires(source -> source.hasPermission(2))
 				.executes(context -> {
+					IRSWebsocket.close();
 					IRSWebsocket.connect();
 					return 1;
 				})
-			).then(Commands.literal("test").requires(source -> source.hasPermission(2))
+			).then(Commands.literal("calculate").requires(source -> source.hasPermission(2))
 				.then(Commands.argument("playerName", EntityArgument.player())
 					.executes(context -> {
+						if (!context.getSource().getServer().isDedicatedServer()) return 0;
 						Player player = EntityArgument.getPlayer(context, "playerName");
-						IRSPlayer irsPlayer = new IRSPlayer(player.getStringUUID());
-						context.getSource().sendSuccess(() -> Component.literal("Player Name From UUID: " + irsPlayer.getPlayer().getDisplayName().getString() + " (" + irsPlayer.getPlayerUUID().toString() + ")"), false);
+						int[] rawAmount = CurrencyHandler.calculateComplexInventoryValue(player);
+						int amount = CurrencyHandler.calculateSimpleInventoryValue(rawAmount);
+						for (int i = 0; i < CurrencyHandler.COINS.size(); i++) {
+							CoinItem coinItem = CurrencyHandler.COINS.get(i);
+							player.sendSystemMessage(NeoComponent.formatString("&l%s&r: %sx (%s)", coinItem.getName(new ItemStack(coinItem)).getString(), rawAmount[i], NeoString.formatCurrency(rawAmount[i] * CurrencyHandler.COINS.get(i).getValue())));
+						}
+						player.sendSystemMessage(NeoComponent.formatString("&lTotal&r: %s", NeoString.formatCurrency(amount)));
 						return 1;
 					})
 				)
-			).executes(context -> {
-				if (context.getSource().getServer().isDedicatedServer()) {
-					List<IRSTransaction> history = IRS.getTransactionHistory("02c0f072-5e8f-46f8-a400-4b1722b293f0");
-					if (history.isEmpty()) return 1;
-//					PacketDistributor.sendToPlayer(Objects.requireNonNull(context.getSource().getPlayer()), new IRSClientboundPacket("history", 0, history, new ArrayList<>()));
-					PacketDistributor.sendToAllPlayers(new IRSClientboundPacket("history", 0, history, new ArrayList<>()));
-				}
-				return 1;
-			})
+			).then(Commands.literal("calculateraw").requires(source -> source.hasPermission(2))
+				.then(Commands.argument("playerName", EntityArgument.player())
+					.executes(context -> {
+						if (!context.getSource().getServer().isDedicatedServer()) return 0;
+						Player player = EntityArgument.getPlayer(context, "playerName");
+						int amount = CurrencyHandler.calculateSimpleInventoryValue(player);
+						context.getSource().sendSuccess(() -> Component.literal(String.valueOf(amount)), false);
+						return 1;
+					})
+				)
+			).then(Commands.literal("givecoin").requires(source -> source.hasPermission(2))
+				.then(Commands.argument("playerName", EntityArgument.player())
+					.then(Commands.argument("amount", IntegerArgumentType.integer())
+						.executes(context -> {
+							if (!context.getSource().getServer().isDedicatedServer()) return 0;
+							Player player = EntityArgument.getPlayer(context, "playerName");
+							int amount = context.getArgument("amount", Integer.class);
+							boolean success = CurrencyHandler.addValueToInventory(player, amount);
+							if (!success) {
+								context.getSource().sendFailure(Component.literal("&cFailed to add value to inventory."));
+								return 0;
+							}
+							if (context.getSource().getPlayer() == null || context.getSource().getPlayer().getUUID() != player.getUUID()) {
+								context.getSource().sendSuccess(() -> NeoComponent.formatString("&7Added &6%s &7to &6%s&7's inventory.", NeoString.formatCurrency(amount), player.getScoreboardName()), false);
+							}
+							player.sendSystemMessage(NeoComponent.formatString("&7Added &6%s &7to your inventory.", NeoString.formatCurrency(amount)));
+							return 1;
+						})
+					)
+				)
+			).then(Commands.literal("takecoin").requires(source -> source.hasPermission(2))
+				.then(Commands.argument("playerName", EntityArgument.player())
+					.then(Commands.argument("amount", IntegerArgumentType.integer())
+						.executes(context -> {
+							if (!context.getSource().getServer().isDedicatedServer()) return 0;
+							Player player = EntityArgument.getPlayer(context, "playerName");
+							int amount = context.getArgument("amount", Integer.class);
+							boolean success = CurrencyHandler.removeValueFromInventory(player, amount);
+							if (!success) {
+								context.getSource().sendFailure(Component.literal("&cFailed to remove value from inventory."));
+								return 0;
+							}
+							if (context.getSource().getPlayer() == null || context.getSource().getPlayer().getUUID() != player.getUUID()) {
+								context.getSource().sendSuccess(() -> NeoComponent.formatString("&7Removed &6%s &7from &6%s&7's inventory.", NeoString.formatCurrency(amount), player.getScoreboardName()), false);
+							}
+							player.sendSystemMessage(NeoComponent.formatString("&7Removed &6%s &7from your inventory.", NeoString.formatCurrency(amount)));
+							return 1;
+						})
+					)
+				)
+			).then(Commands.literal("giveirs").requires(source -> source.hasPermission(2))
+				.then(Commands.argument("playerName", EntityArgument.player())
+					.then(Commands.argument("amount", IntegerArgumentType.integer())
+						.executes(context -> {
+							if (!context.getSource().getServer().isDedicatedServer()) return 0;
+							Player player = EntityArgument.getPlayer(context, "playerName");
+							int amount = context.getArgument("amount", Integer.class);
+							if (amount < 1) {
+								// Fail
+								return 0;
+							}
+							IRSTransaction transaction = IRS.serverSendMoney(player.getStringUUID(), amount, "*Manual Operator Transaction*");
+							if (transaction.getState() != IRSPaymentState.ACCEPTED) {
+								context.getSource().sendFailure(Component.literal("&cFailed to add value to bank balance."));
+								return 0;
+							}
+							if (context.getSource().getPlayer() == null || context.getSource().getPlayer().getUUID() != player.getUUID()) {
+								context.getSource().sendSuccess(() -> NeoComponent.formatString("&7Added &6%s &7to &6%s&7's bank balance.", NeoString.formatCurrency(amount), player.getScoreboardName()), false);
+							}
+							player.sendSystemMessage(NeoComponent.formatString("&7Manually added &6%s &7to your bank balance.", NeoString.formatCurrency(amount)));
+							return 1;
+						})
+					)
+				)
+			).then(Commands.literal("takeirs").requires(source -> source.hasPermission(2))
+				.then(Commands.argument("playerName", EntityArgument.player())
+					.then(Commands.argument("amount", IntegerArgumentType.integer())
+						.executes(context -> {
+							if (!context.getSource().getServer().isDedicatedServer()) return 0;
+							Player player = EntityArgument.getPlayer(context, "playerName");
+							int amount = context.getArgument("amount", Integer.class);
+							if (amount < 1) {
+								context.getSource().sendFailure(Component.literal("&cAmount must be greater than 0."));
+								return 0;
+							}
+							IRSTransaction transaction = IRS.serverReceiveMoney(player.getStringUUID(), amount, "*Manual Operator Transaction*");
+							if (transaction.getState() != IRSPaymentState.ACCEPTED) {
+								context.getSource().sendFailure(Component.literal("&cFailed to take value from bank balance."));
+								return 0;
+							}
+							if (context.getSource().getPlayer() == null || context.getSource().getPlayer().getUUID() != player.getUUID()) {
+								context.getSource().sendSuccess(() -> NeoComponent.formatString("&7Removed &6%s &7from &6%s&7's bank balance.", NeoString.formatCurrency(amount), player.getScoreboardName()), false);
+							}
+							player.sendSystemMessage(NeoComponent.formatString("&7Manually removed &6%s &7from your bank balance.", NeoString.formatCurrency(amount)));
+							return 1;
+						})
+					)
+				)
+			)
 		);
 	}
 

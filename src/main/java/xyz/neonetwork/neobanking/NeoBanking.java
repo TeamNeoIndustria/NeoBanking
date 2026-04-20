@@ -14,10 +14,15 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 import xyz.neonetwork.neobanking.api.IRS;
+import xyz.neonetwork.neobanking.api.IRSWebsocket;
+import xyz.neonetwork.neobanking.blockitems.CoinItem;
 import xyz.neonetwork.neobanking.commands.NeoBankingCommand;
-import xyz.neonetwork.neobanking.items.NeoItems;
+import xyz.neonetwork.neobanking.blockitems.NeoItems;
+import xyz.neonetwork.neobanking.paymentprocessor.CurrencyHandler;
+import xyz.neonetwork.neobanking.paymentprocessor.ShopResolver;
 
 import java.util.Objects;
 
@@ -28,6 +33,8 @@ public class NeoBanking {
 	public static final NeoRegistrate REGISTRATE = NeoRegistrate.create(MODID)
 		.defaultCreativeTab((ResourceKey<CreativeModeTab>) null);
 	public static MinecraftServer server;
+
+	private int tickTimer = 0;
 
 	public NeoBanking(IEventBus modEventBus, ModContainer modContainer) {
 		modEventBus.addListener(this::commonSetup);
@@ -41,12 +48,24 @@ public class NeoBanking {
 	}
 
 	private void commonSetup(FMLCommonSetupEvent event) {
-
+		CurrencyHandler.COINS = NeoItems.NEO_COINS.values().stream()
+			.map(entry -> (CoinItem) entry.get())
+			.sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+			.toList();
 	}
 
 	@SubscribeEvent
 	public void onServerStart(ServerStartedEvent event) {
 		server = event.getServer();
+	}
+
+	@SubscribeEvent
+	public void onServerTick(ServerTickEvent.Post event) {
+		if (++tickTimer == 20) {
+			tickTimer = 0;
+			ShopResolver.tickQueue();
+			if (ShopResolver.fallbackShouldProcess) ShopResolver.tickFallbackEndpoints();
+		}
 	}
 
 	@SubscribeEvent

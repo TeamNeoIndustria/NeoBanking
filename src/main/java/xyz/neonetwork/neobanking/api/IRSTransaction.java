@@ -21,6 +21,16 @@ public class IRSTransaction implements Serializable {
 	public static final StreamCodec<ByteBuf, List<IRSTransaction>> LIST_STREAM_CODEC =
 		IRSTransaction.STREAM_CODEC.apply(ByteBufCodecs.list());
 
+	public IRSTransaction(String transactionID, IRSPaymentState state) {
+		this.transactionID = transactionID;
+		this.state = state;
+		this.from = null;
+		this.to = null;
+		this.amount = -1;
+		this.reference = null;
+		this.timestamp = -1;
+	}
+
 	public IRSTransaction(String transactionID, IRSPlayer from, IRSPlayer to, int amount, String reference, long timestamp, IRSPaymentState state) {
 		this.transactionID = transactionID;
 		this.from = from;
@@ -29,6 +39,13 @@ public class IRSTransaction implements Serializable {
 		this.reference = reference;
 		this.timestamp = timestamp;
 		this.state = state;
+	}
+
+	public boolean isValid() {
+		if (this.from == null || this.to == null || this.amount == -1 || this.reference == null || this.timestamp == -1) {
+			return false;
+		}
+		return true;
 	}
 
 	public String getTransactionID() {

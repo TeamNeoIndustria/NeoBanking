@@ -6,7 +6,7 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import xyz.neonetwork.neobanking.items.NeoItems;
+import xyz.neonetwork.neobanking.blockitems.NeoItems;
 
 public class CreativeTab {
 	public static final DeferredRegister<CreativeModeTab> REGISTER = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, NeoBanking.MODID);
@@ -18,6 +18,7 @@ public class CreativeTab {
 			.displayItems((param, output) -> {
 				NeoItems.NEO_COINS.forEach((id, item) -> output.accept(item.asStack()));
 				NeoItems.NEO_ITEMS.forEach((id, item) -> output.accept(item.asStack()));
+				NeoItems.NEO_BLOCKS.forEach((id, block) -> output.accept(block.asStack()));
 			})
 			.build()
 	);

@@ -3,12 +3,16 @@
   "itemGroup.neobanking": "NeoBanking",
 
   "item.neobanking.base_coin": "Base Coin",
+  "item.neobanking.wooden_coin": "Wooden Coin",
   "item.neobanking.copper_coin": "Copper Coin",
   "item.neobanking.iron_coin": "Iron Coin",
   "item.neobanking.zinc_coin": "Zinc Coin",
   "item.neobanking.gold_coin": "Gold Coin",
   "item.neobanking.netherite_coin": "Netherite Coin",
   "item.neobanking.pda": "Portable Banking Terminal",
+
+  "block.neobanking.atm": "Automated Teller Machine",
+  "block.neobanking.atm_base": "Automated Teller Machine",
 
   "tooltip.neobanking.coin_item": "Value: $value"
 }
