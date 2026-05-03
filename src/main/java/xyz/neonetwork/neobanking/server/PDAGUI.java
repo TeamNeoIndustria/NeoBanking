@@ -304,7 +304,10 @@ public class PDAGUI {
 				})
 				.addButtonWidget(4, 7, 3, 1, "accept", Component.literal("Accept").withStyle(ChatFormatting.GREEN), null, false, (finalScreen, finalGrid) -> {
 					IRSSimpleTransaction acceptResponse = IRS.approveTransaction(player.getStringUUID(), pending.getTransactionID(), true);
-					if (acceptResponse.getState() != IRSPaymentState.ACCEPTED) {
+					if (acceptResponse.getState() == IRSPaymentState.INSUFFICIENT_FUNDS) {
+						showErrorPage(player, List.of(Component.literal("You do not have sufficient funds to accept this transaction request.")));
+						return;
+					} else if (acceptResponse.getState() != IRSPaymentState.ACCEPTED) {
 						showErrorPage(player, Component.literal("There was an issue accepting this transaction, it may have expired (They only last 2 mintutes)"));
 						return;
 					}

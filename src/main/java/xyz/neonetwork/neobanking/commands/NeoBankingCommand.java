@@ -24,6 +24,8 @@ import xyz.neonetwork.neolib.textures.NeoTexture;
 import xyz.neonetwork.neolib.utilities.NeoComponent;
 import xyz.neonetwork.neolib.utilities.NeoString;
 
+import java.util.List;
+
 public class NeoBankingCommand {
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -158,6 +160,75 @@ public class NeoBankingCommand {
 							}
 							player.sendSystemMessage(NeoComponent.formatString("&7Manually removed &6%s &7from your bank balance.", NeoString.formatCurrency(amount)));
 							return 1;
+						})
+					)
+				)
+			).then(Commands.literal("tellerdeposit").requires(source -> source.hasPermission(2))
+				.then(Commands.argument("playerName", EntityArgument.player())
+					.then(Commands.argument("amount", IntegerArgumentType.integer())
+						.executes(context -> {
+							if (!context.getSource().getServer().isDedicatedServer()) return 0;
+							Player player = EntityArgument.getPlayer(context, "playerName");
+							int amount = context.getArgument("amount", Integer.class);
+							int balance = CurrencyHandler.calculateSimpleInventoryValue(player);
+							if (amount == -1) {
+								amount = balance;
+							} else if (amount < 1) {
+								context.getSource().sendFailure(NeoComponent.formatString("&cAmount must be greater than 0."));
+								// Target player, there was an unknown error
+								player.sendSystemMessage(NeoComponent.formatString("&cFailed to deposit as amount was less than 1. Please inform an admin."));
+								return 0;
+							}
+							if (!CurrencyHandler.removeValueFromInventory(player, amount)) {
+								// Target player, not enough currency in inv
+								player.sendSystemMessage(NeoComponent.formatString("Bank Clerk : &cYou don't have enough coins to deposit that much."));
+								return 0;
+							}
+							if (IRS.serverSendMoney(player.getStringUUID(), amount, "*Teller Deposit*").getState() != IRSPaymentState.ACCEPTED) {
+								// Target player, failed processing
+								player.sendSystemMessage(NeoComponent.formatString("&cThere was an issue adding the amount to your account. Please inform an admin."));
+								NeoBanking.LOGGER.warn("There was an issue adding {} to {}'s bank account", NeoString.formatCurrency(amount), player.getScoreboardName());
+								return 0;
+							}
+							// Target player, Deposit complete
+							player.sendSystemMessage(NeoComponent.formatString("Bank Clerk : &a%s &rhas been deposited into your bank account.", NeoString.formatCurrency(amount)));
+							return 1;
+						})
+					)
+				)
+			)
+			.then(Commands.literal("tellerwithdraw").requires(source -> source.hasPermission(2))
+				.then(Commands.argument("playerName", EntityArgument.player())
+					.then(Commands.argument("amount", IntegerArgumentType.integer())
+						.executes(context -> {
+							if (!context.getSource().getServer().isDedicatedServer()) return 0;
+							Player player = EntityArgument.getPlayer(context, "playerName");
+							int amount = context.getArgument("amount", Integer.class);
+							if (amount < 1) {
+								context.getSource().sendFailure(NeoComponent.formatString("&cAmount must be greater than 0."));
+								// Target player, there was an unknown error
+								player.sendSystemMessage(NeoComponent.formatString("&cFailed to deposit as amount was less than 1. Please inform an admin."));
+								return 0;
+							}
+							int balance = IRS.getUserBalance(player.getStringUUID());
+							if (amount > balance) {
+								// Target player, not enough balance
+								player.sendSystemMessage(NeoComponent.formatString("Bank Clerk : &cYou don't have enough balance to withdraw that much."));
+								return 0;
+							}
+							IRSPaymentState paymentState = IRS.serverReceiveMoney(player.getStringUUID(), amount, "*Teller Withdrawal*").getState();
+							switch (paymentState) {
+								case ACCEPTED:
+									CurrencyHandler.addValueToInventory(player, amount);
+									// Target player, withdrew moneys
+									player.sendSystemMessage(NeoComponent.formatString("Bank Clerk : &a%s &rhas been withdrawn from your bank account.", NeoString.formatCurrency(amount)));
+									return 1;
+								case INSUFFICIENT_FUNDS:
+									// Target player, you're too poor
+									player.sendSystemMessage(NeoComponent.formatString("Bank Clerk : &cYou don't have enough balance to withdraw that much."));
+									return 0;
+							}
+							return 0;
 						})
 					)
 				)

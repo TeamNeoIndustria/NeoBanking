@@ -11,6 +11,7 @@ import net.createmod.catnip.data.Couple;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,9 +22,13 @@ import xyz.neonetwork.neobanking.NeoBanking;
 import xyz.neonetwork.neobanking.api.IRS;
 import xyz.neonetwork.neobanking.api.IRSPaymentState;
 import xyz.neonetwork.neobanking.api.IRSTransaction;
+import xyz.neonetwork.neobanking.blockitems.CoinItem;
 import xyz.neonetwork.neobanking.blockitems.NeoItems;
 import xyz.neonetwork.neobanking.paymentprocessor.CurrencyHandler;
 import xyz.neonetwork.neobanking.paymentprocessor.ShopResolver;
+
+import java.util.List;
+import java.util.Map;
 
 @Mixin(com.simibubi.create.content.logistics.stockTicker.StockTickerInteractionHandler.class)
 public class StockTickerInteractionHandlerMixin {
@@ -52,9 +57,28 @@ public class StockTickerInteractionHandlerMixin {
 		Couple<InventorySummary> bakeEntries = list.bakeEntries(level, null);
 		InventorySummary paymentEntries = bakeEntries.getSecond();
 
-		boolean isCoins = paymentEntries.getItemMap().containsKey(NeoItems.NEO_SYSTEM_ITEMS.get("base_coin").get());
+		boolean isCoins = false;
+		boolean isItems = false;
 
-		if (!isCoins) return;
+		for (Item item : paymentEntries.getItemMap().keySet()) {
+			if (item instanceof CoinItem) {
+				isCoins = true;
+			} else {
+				isItems = true;
+			}
+		}
+
+		if (isItems && isCoins) {
+			AllSoundEvents.DENY.playOnServer(level, player.blockPosition());
+			CreateLang.builder()
+				.text("You can't make a purchase that costs items and coins simultaniously")
+				.style(ChatFormatting.RED)
+				.sendStatus(player);
+			ci.cancel();
+			return;
+		}
+
+		if (isItems && !isCoins) return;
 
 		if (!player.getUUID().toString().equals("380df991-f603-344c-a090-369bad2a924a")) {
 			if (list.shopOwner().equals(player.getUUID())) {
@@ -83,8 +107,11 @@ public class StockTickerInteractionHandlerMixin {
 				ci.cancel();
 				return;
 			}
+			IRS.serverSendMoney(list.shopOwner().toString(), amountNeeded, String.format("*Cash Shop Transaction at X:%s, Y:%s, Z:%s", tickerBE.getBlockPos().getX(), tickerBE.getBlockPos().getY(), tickerBE.getBlockPos().getZ()));
 			boolean shopSuccess = shopResolver.processOrder();
 			if (!shopSuccess) {
+				CurrencyHandler.addValueToInventory(player, amountNeeded);
+				IRS.serverReceiveMoney(list.shopOwner().toString(), amountNeeded, String.format("*Insuficient Stock Refund* at X:%s, Y:%s, Z:%s", tickerBE.getBlockPos().getX(), tickerBE.getBlockPos().getY(), tickerBE.getBlockPos().getZ()));
 				CurrencyHandler.addValueToInventory(player, amountNeeded);
 				ci.cancel();
 				return;

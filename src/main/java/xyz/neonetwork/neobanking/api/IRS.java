@@ -173,7 +173,10 @@ public class IRS {
 			if (!response.getSuccess()) {
 				NeoBanking.LOGGER.warn("IRS#approveTransaction failed. Code: {}, Message: {}",
 					response.getStatusCode(), response.getStatusMessage());
-				return new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
+				return switch (response.getStatusCode()) {
+					case "402" -> new IRSSimpleTransaction(null, IRSPaymentState.INSUFFICIENT_FUNDS);
+					default -> new IRSSimpleTransaction(null, IRSPaymentState.UNKNOWN);
+				};
 			}
 			if (!Objects.equals(response.getDataNode().getAsJsonObject().get("accepted").getAsString(), "true")) return new IRSSimpleTransaction(null, IRSPaymentState.DECLINED);
 			return new IRSSimpleTransaction(response.getDataNode().getAsJsonObject().get("txID").getAsString(), IRSPaymentState.ACCEPTED);
