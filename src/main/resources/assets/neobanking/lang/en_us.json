@@ -14,5 +14,6 @@
   "block.neobanking.atm": "Automated Teller Machine",
   "block.neobanking.atm_base": "Automated Teller Machine",
 
-  "tooltip.neobanking.coin_item": "Value: $value"
+  "tooltip.neobanking.coin_item_value": "Value: $value",
+  "tooltip.neobanking.coin_item_total_value": "Stack Value: $value"
 }

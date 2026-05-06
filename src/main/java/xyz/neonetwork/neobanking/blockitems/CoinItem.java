@@ -5,6 +5,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import org.jetbrains.annotations.NotNull;
+import xyz.neonetwork.neolib.utilities.NeoString;
 
 import java.util.List;
 
@@ -27,8 +28,12 @@ public class CoinItem extends Item {
 
 	@Override
 	public void appendHoverText(@NotNull ItemStack stack, @NotNull TooltipContext context, List<Component> tooltipComponents, @NotNull TooltipFlag tooltipFlag) {
-		String tooltip = Component.translatable("tooltip.neobanking.coin_item").getString().replace("$value", String.valueOf(this.value));
-		tooltipComponents.add(Component.literal(tooltip));
+		String valueTooltip = Component.translatable("tooltip.neobanking.coin_item_value").getString().replace("$value", NeoString.formatCurrency(this.value));
+		tooltipComponents.add(Component.literal(valueTooltip));
+		if (stack.getCount() > 1) {
+			String totalTooltip = Component.translatable("tooltip.neobanking.coin_item_total_value").getString().replace("$value", NeoString.formatCurrency(this.value * stack.getCount()));
+			tooltipComponents.add(Component.literal(totalTooltip));
+		}
 		super.appendHoverText(stack, context, tooltipComponents, tooltipFlag);
 	}
 }
